@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}New Comparison{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator">
+    <div class="container">
+        <div class="steps">
+            <span class="step active">1. Upload Document</span>
+            <span class="step">2. Select Tables</span>
+            <span class="step">3. Upload Excel</span>
+            <span class="step">4. Range Detection</span>
+            <span class="step">5. Precision Review</span>
+            <span class="step">6. Results</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h4 class="mb-0">New Comparison</h4>
+            </div>
+            <div class="card-body">
+                <form action="/upload-word" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="deal_name" class="form-label fw-semibold">Deal Name</label>
+                        <input type="text" class="form-control" id="deal_name" name="deal_name"
+                               placeholder="e.g., ACME 2026-1 Securitization"
+                               value="{{ deal_name or '' }}" required>
+                        <div class="form-text">Used to label and group comparisons.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="word_file" class="form-label fw-semibold">Offering Document</label>
+                        <input type="file" class="form-control" id="word_file" name="word_file"
+                               accept=".docx" required>
+                        <div class="form-text">Upload a .docx file containing the tables to verify.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        Upload &amp; Parse Tables
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

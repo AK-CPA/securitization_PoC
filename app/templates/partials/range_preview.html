@@ -1,0 +1,43 @@
+<h6>Excel Data — {{ mapping.excel_tab_name }}</h6>
+
+{% if mapping.error %}
+<div class="alert alert-warning small">{{ mapping.error }}</div>
+{% endif %}
+
+<div class="d-flex gap-2 mb-2 align-items-center">
+    <label class="form-label mb-0 small fw-semibold">Range:</label>
+    <input type="text" class="form-control form-control-sm" style="width: 140px;"
+           id="range-input-{{ mapping.ct_id }}" name="range_override"
+           value="{{ mapping.current_range }}"
+           placeholder="e.g., B5:K30">
+    <button type="button" class="btn btn-outline-secondary btn-sm"
+            hx-post="/update-range/{{ comparison_id }}/{{ mapping.ct_id }}"
+            hx-include="#range-input-{{ mapping.ct_id }}"
+            hx-target="#range-preview-{{ mapping.ct_id }}"
+            hx-swap="innerHTML">
+        Refresh
+    </button>
+</div>
+
+<div class="table-preview-container">
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered mb-0">
+            <tbody>
+                {% if mapping.excel_data %}
+                    {% for row in mapping.excel_data[:15] %}
+                    <tr>
+                        {% for cell in row %}
+                        <td class="small">{{ cell if cell is not none else '' }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    {% if mapping.excel_data|length > 15 %}
+                    <tr><td colspan="100" class="text-center text-muted">... {{ mapping.excel_data|length - 15 }} more rows</td></tr>
+                    {% endif %}
+                {% else %}
+                    <tr><td class="text-muted">No data to preview</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>

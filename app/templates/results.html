@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Results{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator">
+    <div class="container">
+        <div class="steps">
+            <span class="step completed">1. Upload Document</span>
+            <span class="step completed">2. Select Tables</span>
+            <span class="step completed">3. Upload Excel</span>
+            <span class="step completed">4. Range Detection</span>
+            <span class="step completed">5. Precision Review</span>
+            <span class="step active">6. Results</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Banner -->
+<div class="alert {{ 'alert-success' if overall_status == 'pass' else 'alert-danger' }} d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">
+            {% if overall_status == 'pass' %}
+                All Checks Passed
+            {% else %}
+                Mismatches Found
+            {% endif %}
+        </h4>
+        <span>
+            {{ total_match }} matched | {{ total_mismatch }} mismatched | {{ total_cells }} total cells compared
+        </span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/download/{{ comparison_id }}" class="btn btn-dark btn-lg">
+            Download Excel
+        </a>
+        <a href="/" class="btn btn-outline-secondary">New Comparison</a>
+    </div>
+</div>
+
+<!-- Per-table breakdown -->
+{% for tr in table_results %}
+<div class="card mb-3 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         data-bs-toggle="collapse" data-bs-target="#table-result-{{ loop.index }}"
+         style="cursor: pointer;">
+        <h5 class="mb-0">
+            <span class="badge {{ 'bg-success' if tr.status == 'pass' else 'bg-danger' }} me-2">
+                {{ tr.status|upper }}
+            </span>
+            {{ tr.table_label }}
+        </h5>
+        <span class="text-muted">
+            {{ tr.excel_tab_name }} &mdash;
+            {{ tr.match_count }} match, {{ tr.mismatch_count }} mismatch, {{ tr.total_cells }} total
+        </span>
+    </div>
+    <div class="collapse {{ 'show' if tr.status == 'fail' else '' }}" id="table-result-{{ loop.index }}">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 comparison-grid">
+                    <tbody>
+                        {% for r_idx in range(tr.diff_grid|length) %}
+                        <tr>
+                            {% for c_idx in range(tr.diff_grid[r_idx]|length) %}
+                            {% set status = tr.status_grid[r_idx][c_idx] if r_idx < tr.status_grid|length and c_idx < tr.status_grid[r_idx]|length else 'skipped' %}
+                            {% set diff_val = tr.diff_grid[r_idx][c_idx] %}
+                            <td class="small {% if status == 'mismatch' %}cell-mismatch{% elif status == 'type_mismatch' %}cell-mismatch{% elif status == 'match' %}cell-match{% elif status == 'unmatched' %}cell-mismatch{% endif %}">
+                                {% if status == 'skipped' %}
+                                    {{ tr.word_table[r_idx][c_idx] if r_idx < tr.word_table|length and c_idx < tr.word_table[r_idx]|length else '' }}
+                                {% elif status == 'type_mismatch' %}
+                                    TYPE ERR
+                                {% elif status == 'unmatched' %}
+                                    UNMATCHED
+                                {% elif status == 'match' %}
+                                    0
+                                {% else %}
+                                    {{ diff_val }}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<div class="d-flex justify-content-center mt-4 gap-3">
+    <a href="/download/{{ comparison_id }}" class="btn btn-primary btn-lg">Download Output Excel</a>
+    <a href="/" class="btn btn-outline-secondary btn-lg">New Comparison</a>
+</div>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Select Tables{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator">
+    <div class="container">
+        <div class="steps">
+            <span class="step completed">1. Upload Document</span>
+            <span class="step active">2. Select Tables</span>
+            <span class="step">3. Upload Excel</span>
+            <span class="step">4. Range Detection</span>
+            <span class="step">5. Precision Review</span>
+            <span class="step">6. Results</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<form action="/select-tables/{{ comparison_id }}" method="post">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Select Tables to Compare</h4>
+        <div>
+            <span class="badge bg-primary fs-6" id="selection-counter">
+                <span id="selected-count">{{ selected_indices|length }}</span> of {{ total_tables }} tables selected
+            </span>
+        </div>
+    </div>
+
+    <div class="mb-3 d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAll()">Select All</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAll()">Deselect All</button>
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="prevTable()" id="btn-prev">Previous</button>
+            <select class="form-select form-select-sm" style="width: auto;" id="table-jump" onchange="jumpToTable(this.value)">
+                {% for i in range(total_tables) %}
+                <option value="{{ i }}">Table {{ i + 1 }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="nextTable()" id="btn-next">Next</button>
+        </div>
+    </div>
+
+    <div id="table-container">
+        {% for i in range(total_tables) %}
+        <div class="card mb-3 table-card" id="table-card-{{ i }}" {% if i > 0 %}style="display:none;"{% endif %}>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="form-check">
+                    <input class="form-check-input table-checkbox" type="checkbox"
+                           name="selected_tables" value="{{ i }}"
+                           id="check-{{ i }}"
+                           {% if i in selected_indices %}checked{% endif %}
+                           onchange="updateCounter()">
+                    <label class="form-check-label fw-semibold" for="check-{{ i }}">
+                        {{ table_labels[i] }}
+                    </label>
+                </div>
+                <span class="text-muted">{{ tables[i]|length }} rows &times; {{ tables[i][0]|length if tables[i] else 0 }} cols</span>
+            </div>
+            <div class="card-body table-preview-container">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover mb-0">
+                        <tbody>
+                            {% for row in tables[i] %}
+                            <tr>
+                                {% for cell in row %}
+                                <td>{{ cell }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="d-flex justify-content-end mt-3">
+        <button type="submit" class="btn btn-primary btn-lg" id="btn-proceed">
+            Proceed with Selected Tables
+        </button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentTable = 0;
+    const totalTables = {{ total_tables }};
+
+    function showTable(idx) {
+        document.querySelectorAll('.table-card').forEach(c => c.style.display = 'none');
+        document.getElementById('table-card-' + idx).style.display = 'block';
+        document.getElementById('table-jump').value = idx;
+        currentTable = idx;
+    }
+
+    function prevTable() {
+        if (currentTable > 0) showTable(currentTable - 1);
+    }
+
+    function nextTable() {
+        if (currentTable < totalTables - 1) showTable(currentTable + 1);
+    }
+
+    function jumpToTable(idx) {
+        showTable(parseInt(idx));
+    }
+
+    function selectAll() {
+        document.querySelectorAll('.table-checkbox').forEach(cb => cb.checked = true);
+        updateCounter();
+    }
+
+    function deselectAll() {
+        document.querySelectorAll('.table-checkbox').forEach(cb => cb.checked = false);
+        updateCounter();
+    }
+
+    function updateCounter() {
+        const count = document.querySelectorAll('.table-checkbox:checked').length;
+        document.getElementById('selected-count').textContent = count;
+        document.getElementById('btn-proceed').disabled = count === 0;
+    }
+
+    updateCounter();
+</script>
+{% endblock %}

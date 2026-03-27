@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+data/app.db
+uploads/
+outputs/
+.DS_Store
+*.swp
+*.swo

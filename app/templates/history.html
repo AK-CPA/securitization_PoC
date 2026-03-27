@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}History{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">Comparison History</h4>
+
+{% if not deals_data %}
+<div class="text-center text-muted py-5">
+    <p>No comparisons yet.</p>
+    <a href="/" class="btn btn-primary">Start a New Comparison</a>
+</div>
+{% else %}
+    {% for item in deals_data %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">{{ item.deal.name }}</h5>
+            <small class="text-muted">Created {{ item.deal.created_at.strftime('%Y-%m-%d %H:%M') if item.deal.created_at else 'N/A' }}</small>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Word File</th>
+                        <th>Excel File</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comp in item.comparisons %}
+                    <tr>
+                        <td>{{ comp.id }}</td>
+                        <td>{{ comp.word_filename or '—' }}</td>
+                        <td>{{ comp.excel_filename or '—' }}</td>
+                        <td>
+                            {% if comp.status == 'pass' %}
+                            <span class="badge bg-success">PASS</span>
+                            {% elif comp.status == 'fail' %}
+                            <span class="badge bg-danger">FAIL</span>
+                            {% else %}
+                            <span class="badge bg-secondary">PENDING</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ comp.created_at.strftime('%Y-%m-%d %H:%M') if comp.created_at else 'N/A' }}</td>
+                        <td>
+                            {% if comp.status %}
+                            <a href="/results/{{ comp.id }}" class="btn btn-sm btn-outline-primary">View Results</a>
+                            {% if comp.output_filename %}
+                            <a href="/download/{{ comp.id }}" class="btn btn-sm btn-outline-dark">Download</a>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">In progress</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}

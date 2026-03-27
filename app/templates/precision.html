@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Precision Review{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator">
+    <div class="container">
+        <div class="steps">
+            <span class="step completed">1. Upload Document</span>
+            <span class="step completed">2. Select Tables</span>
+            <span class="step completed">3. Upload Excel</span>
+            <span class="step completed">4. Range Detection</span>
+            <span class="step active">5. Precision Review</span>
+            <span class="step">6. Results</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">Precision Review — {{ deal_name }}</h4>
+<p class="text-muted">
+    Review the auto-detected decimal precision for each row. Override any values if needed (0–8 decimal places).
+</p>
+
+<form action="/precision/{{ comparison_id }}" method="post">
+    {% for table in precision_data %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ table.table_label }}</h5>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="resetPrecisions('{{ table.ct_id }}')">
+                Reset All
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 60px;">Row</th>
+                            <th>Sample Values</th>
+                            <th style="width: 100px;">Auto</th>
+                            <th style="width: 120px;">Precision</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in table.rows %}
+                        <tr>
+                            <td class="text-muted">{{ row.row_index + 1 }}</td>
+                            <td class="small">
+                                {% for cell in row.cells[:6] %}
+                                    <span class="me-2">{{ cell }}</span>
+                                {% endfor %}
+                                {% if row.cells|length > 6 %}...{% endif %}
+                            </td>
+                            <td>
+                                <span class="text-muted">{{ row.auto_precision }}</span>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm precision-input"
+                                       name="precision_{{ table.ct_id }}_{{ row.row_index }}"
+                                       value="{{ row.effective }}"
+                                       min="0" max="8"
+                                       data-auto="{{ row.auto_precision }}"
+                                       data-table="{{ table.ct_id }}"
+                                       onchange="highlightOverride(this)">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary btn-lg">
+            Run Comparison
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function highlightOverride(input) {
+        const auto = parseInt(input.dataset.auto);
+        const current = parseInt(input.value);
+        if (current !== auto) {
+            input.classList.add('border-primary', 'text-primary', 'fw-bold');
+            input.classList.remove('text-muted');
+        } else {
+            input.classList.remove('border-primary', 'text-primary', 'fw-bold');
+        }
+    }
+
+    function resetPrecisions(tableId) {
+        document.querySelectorAll(`input[data-table="${tableId}"]`).forEach(input => {
+            input.value = input.dataset.auto;
+            input.classList.remove('border-primary', 'text-primary', 'fw-bold');
+        });
+    }
+
+    // Highlight overrides on load
+    document.querySelectorAll('.precision-input').forEach(highlightOverride);
+</script>
+{% endblock %}

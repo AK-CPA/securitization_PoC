@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Range Detection & Mapping{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator">
+    <div class="container">
+        <div class="steps">
+            <span class="step completed">1. Upload Document</span>
+            <span class="step completed">2. Select Tables</span>
+            <span class="step completed">3. Upload Excel</span>
+            <span class="step active">4. Range Detection</span>
+            <span class="step">5. Precision Review</span>
+            <span class="step">6. Results</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">Range Detection &amp; Mapping — {{ deal_name }}</h4>
+
+{% for mapping in mappings %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{{ mapping.table_label }} &harr; {{ mapping.excel_tab_name }}</h5>
+        <span class="text-muted">
+            Word: {{ mapping.word_rows }} rows &times; {{ mapping.word_cols }} cols |
+            Excel: {{ mapping.excel_rows }} rows &times; {{ mapping.excel_cols }} cols
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Word table preview -->
+            <div class="col-md-6">
+                <h6>Offering Document Table</h6>
+                <div class="table-preview-container">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0">
+                            <tbody>
+                                {% for row in mapping.word_table[:15] %}
+                                <tr>
+                                    {% for cell in row %}
+                                    <td class="small">{{ cell }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                                {% if mapping.word_table|length > 15 %}
+                                <tr><td colspan="100" class="text-center text-muted">... {{ mapping.word_table|length - 15 }} more rows</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Excel preview with range controls -->
+            <div class="col-md-6" id="range-preview-{{ mapping.ct_id }}">
+                {% include "partials/range_preview.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Mapping Summary -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header">
+        <h5 class="mb-0">Mapping Summary</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Selected Table</th>
+                    <th>Excel Tab</th>
+                    <th>Detected Range</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mapping in mappings %}
+                <tr>
+                    <td>{{ mapping.table_label }}</td>
+                    <td>{{ mapping.excel_tab_name }}</td>
+                    <td><code>{{ mapping.current_range or 'N/A' }}</code></td>
+                    <td>
+                        {% if mapping.error %}
+                        <span class="badge bg-warning">Needs Attention</span>
+                        {% elif mapping.current_range != mapping.detected_range and mapping.current_range %}
+                        <span class="badge bg-info">Adjusted by user</span>
+                        {% else %}
+                        <span class="badge bg-success">Ready</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end">
+    <form action="/confirm-ranges/{{ comparison_id }}" method="post">
+        <button type="submit" class="btn btn-primary btn-lg">
+            Confirm Ranges &amp; Continue
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Excel{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator">
+    <div class="container">
+        <div class="steps">
+            <span class="step completed">1. Upload Document</span>
+            <span class="step completed">2. Select Tables</span>
+            <span class="step active">3. Upload Excel</span>
+            <span class="step">4. Range Detection</span>
+            <span class="step">5. Precision Review</span>
+            <span class="step">6. Results</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h4 class="mb-0">Upload Supporting Excel</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Upload the Excel workbook (.xlsx) that contains the source data.
+                    The first {{ selected_count }} tab(s) will be mapped sequentially to your selected tables.
+                </p>
+                <form action="/upload-excel/{{ comparison_id }}" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="excel_file" class="form-label fw-semibold">Excel Workbook</label>
+                        <input type="file" class="form-control" id="excel_file" name="excel_file"
+                               accept=".xlsx" required>
+                        <div class="form-text">Must have at least {{ selected_count }} tab(s).</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        Upload &amp; Detect Ranges
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
