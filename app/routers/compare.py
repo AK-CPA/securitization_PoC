@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.config import TEMPLATES_DIR, UPLOAD_DIR, OUTPUT_DIR
 from app.database import get_db
 from app.models import Comparison, ComparisonTable, Deal
 from app.services.word_parser import get_table_label
@@ -19,10 +20,7 @@ from app.services.comparator import (
 from app.services.output_builder import build_output_workbook
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
-
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "outputs")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 @router.get("/range-review/{comparison_id}")

@@ -6,14 +6,13 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import TEMPLATES_DIR, UPLOAD_DIR
 from app.database import get_db
 from app.models import Deal, Comparison
 from app.services.word_parser import extract_tables, get_table_label
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
-
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 @router.get("/")

@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.config import TEMPLATES_DIR, UPLOAD_DIR
 from app.database import get_db
 from app.models import Comparison, ComparisonTable
 from app.services.word_parser import get_table_label
@@ -13,9 +14,7 @@ from app.services.excel_reader import get_sheet_names, read_sheet_data
 from app.services.range_detector import detect_range
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
-
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 @router.get("/tables/{comparison_id}")
