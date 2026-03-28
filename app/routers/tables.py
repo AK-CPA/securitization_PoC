@@ -30,8 +30,7 @@ async def table_selection(
     tables = comparison.parsed_tables
     table_labels = [get_table_label(t, i) for i, t in enumerate(tables)]
 
-    return templates.TemplateResponse("table_selection.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "table_selection.html", {
         "comparison_id": comparison_id,
         "tables": tables,
         "table_labels": table_labels,
@@ -57,8 +56,7 @@ async def select_tables(
     if not selected_indices:
         tables = comparison.parsed_tables
         table_labels = [get_table_label(t, i) for i, t in enumerate(tables)]
-        return templates.TemplateResponse("table_selection.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "table_selection.html", {
             "comparison_id": comparison_id,
             "tables": tables,
             "table_labels": table_labels,
@@ -85,11 +83,9 @@ async def excel_upload_form(
 
     selected_count = len(comparison.selected_table_indices or [])
 
-    return templates.TemplateResponse("excel_upload.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "excel_upload.html", {
         "comparison_id": comparison_id,
         "selected_count": selected_count,
-        "deal_name": (await db.get(comparison.deal.__class__, comparison.deal_id)).name if comparison.deal_id else "",
     })
 
 
@@ -106,8 +102,7 @@ async def upload_excel(
 
     # Validate file type
     if not excel_file.filename.endswith(".xlsx"):
-        return templates.TemplateResponse("excel_upload.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "excel_upload.html", {
             "comparison_id": comparison_id,
             "selected_count": len(comparison.selected_table_indices or []),
             "error": "Please upload an .xlsx file",
@@ -128,8 +123,7 @@ async def upload_excel(
     try:
         sheet_names = get_sheet_names(filepath)
     except Exception:
-        return templates.TemplateResponse("excel_upload.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "excel_upload.html", {
             "comparison_id": comparison_id,
             "selected_count": len(comparison.selected_table_indices or []),
             "error": "Unable to read file. Please ensure it is a valid, unprotected .xlsx file.",
@@ -137,8 +131,7 @@ async def upload_excel(
 
     selected_indices = comparison.selected_table_indices or []
     if len(sheet_names) < len(selected_indices):
-        return templates.TemplateResponse("excel_upload.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "excel_upload.html", {
             "comparison_id": comparison_id,
             "selected_count": len(selected_indices),
             "error": f"Excel has {len(sheet_names)} tabs but {len(selected_indices)} tables were selected. Please upload a file with at least {len(selected_indices)} tabs.",
@@ -146,7 +139,6 @@ async def upload_excel(
 
     # Run range detection for each mapped tab
     detected_ranges = {}
-    range_data = {}
     tables = comparison.parsed_tables
 
     for idx, table_idx in enumerate(selected_indices):
@@ -154,22 +146,8 @@ async def upload_excel(
         try:
             result = detect_range(filepath, sheet_name)
             detected_ranges[str(idx)] = result.get("range", "")
-            range_data[str(idx)] = {
-                "sheet_name": sheet_name,
-                "range": result.get("range", ""),
-                "data": _serialize_data(result.get("data", [])),
-                "has_header": result.get("has_header", False),
-                "error": result.get("error"),
-            }
-        except Exception as e:
+        except Exception:
             detected_ranges[str(idx)] = ""
-            range_data[str(idx)] = {
-                "sheet_name": sheet_name,
-                "range": "",
-                "data": [],
-                "has_header": False,
-                "error": str(e),
-            }
 
     comparison.detected_ranges = detected_ranges
 
@@ -187,17 +165,3 @@ async def upload_excel(
     await db.commit()
 
     return RedirectResponse(url=f"/range-review/{comparison_id}", status_code=303)
-
-
-def _serialize_data(data: list[list]) -> list[list]:
-    """Convert data to JSON-serializable format."""
-    result = []
-    for row in data:
-        serialized_row = []
-        for val in row:
-            if val is None:
-                serialized_row.append(None)
-            else:
-                serialized_row.append(str(val) if not isinstance(val, (int, float, bool)) else val)
-        result.append(serialized_row)
-    return result

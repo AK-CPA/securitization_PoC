@@ -37,8 +37,7 @@ async def history_list(
             "comparisons": comparisons,
         })
 
-    return templates.TemplateResponse("history.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "history.html", {
         "deals_data": deals_data,
     })
 

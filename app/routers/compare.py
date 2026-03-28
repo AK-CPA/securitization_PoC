@@ -46,14 +46,12 @@ async def range_review(
     # Load Excel data for each tab
     excel_path = os.path.join(UPLOAD_DIR, str(comparison.deal_id), comparison.excel_filename)
     tables = comparison.parsed_tables
-    selected_indices = comparison.selected_table_indices or []
 
     mappings = []
     for idx, ct in enumerate(comp_tables):
         table_idx = ct.table_index
         word_table = tables[table_idx] if table_idx < len(tables) else []
 
-        # Get detected range data
         current_range = ct.user_range_override or ct.detected_range
         excel_data = []
         error = None
@@ -84,8 +82,7 @@ async def range_review(
             "ct_id": ct.id,
         })
 
-    return templates.TemplateResponse("range_review.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "range_review.html", {
         "comparison_id": comparison_id,
         "deal_name": deal.name,
         "mappings": mappings,
@@ -104,8 +101,7 @@ async def update_range(
     comparison = await db.get(Comparison, comparison_id)
     ct = await db.get(ComparisonTable, ct_id)
     if not comparison or not ct:
-        return templates.TemplateResponse("partials/range_preview.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "partials/range_preview.html", {
             "mapping": {"error": "Comparison not found"},
         })
 
@@ -113,7 +109,6 @@ async def update_range(
     ct.user_range_override = range_override if range_override else None
     await db.commit()
 
-    # Re-read data with new range
     excel_path = os.path.join(UPLOAD_DIR, str(comparison.deal_id), comparison.excel_filename)
     current_range = range_override or ct.detected_range
     excel_data = []
@@ -148,8 +143,7 @@ async def update_range(
         "ct_id": ct.id,
     }
 
-    return templates.TemplateResponse("partials/range_preview.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "partials/range_preview.html", {
         "comparison_id": comparison_id,
         "mapping": mapping,
     })
@@ -208,8 +202,7 @@ async def precision_review(
             "rows": rows,
         })
 
-    return templates.TemplateResponse("precision.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "precision.html", {
         "comparison_id": comparison_id,
         "deal_name": deal.name,
         "precision_data": precision_data,
@@ -361,8 +354,7 @@ async def results(
             "word_table": word_table,
         })
 
-    return templates.TemplateResponse("results.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "results.html", {
         "comparison_id": comparison_id,
         "deal_name": deal.name,
         "overall_status": comparison.status,

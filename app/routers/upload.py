@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @router.get("/")
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 
 @router.post("/upload-word")
@@ -29,8 +29,7 @@ async def upload_word(
 ):
     # Validate file type
     if not word_file.filename.endswith(".docx"):
-        return templates.TemplateResponse("index.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "index.html", {
             "error": "Please upload a .docx file",
             "deal_name": deal_name,
         })
@@ -61,15 +60,13 @@ async def upload_word(
     try:
         tables = extract_tables(filepath)
     except Exception as e:
-        return templates.TemplateResponse("index.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "index.html", {
             "error": f"Unable to read file. Please ensure it is a valid, unprotected .docx file. Error: {e}",
             "deal_name": deal_name,
         })
 
     if not tables:
-        return templates.TemplateResponse("index.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "index.html", {
             "error": "No tables found in this document",
             "deal_name": deal_name,
         })
