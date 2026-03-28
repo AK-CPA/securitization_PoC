@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Loose Language Tie-Out — Candidate Sentences{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">Loose Language Tie-Out — {{ deal_name }}</h4>
+            <a href="/" class="btn btn-outline-secondary btn-sm">Back to Home</a>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Candidate Sentences</h5>
+                {% if saved_templates %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
+                        Load Template
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% for tmpl in saved_templates %}
+                        <li>
+                            <a class="dropdown-item" href="#"
+                               onclick="loadTemplate({{ tmpl.id }}); return false;">
+                                {{ tmpl.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Enter the candidate sentences from a prior document version or template.
+                    One sentence per line. The system will search {{ word_filename or 'the uploaded Word document' }}
+                    for similar sentences (75%+ match) and extract numeric data for comparison.
+                </p>
+
+                <form action="/loose/sentences/{{ deal_id }}" method="post" id="sentences-form">
+                    <div class="mb-3">
+                        <label for="sentences" class="form-label fw-semibold">
+                            Candidate Sentences
+                        </label>
+                        <textarea class="form-control" id="sentences" name="sentences"
+                                  rows="12"
+                                  placeholder="The aggregate principal balance of the mortgage loans in the top 5 states by concentration is $1,234,567,890.&#10;&#10;States with concentration greater than 5.00% include California (12.34%), Texas (8.56%), and Florida (7.89%).&#10;&#10;The weighted average coupon rate of the mortgage loans is 4.750%."
+                                  required></textarea>
+                        <div class="form-text">
+                            Paste sentences that contain numeric assertions to verify. The system
+                            will fuzzy-match them in the current document and compare the numbers
+                            against your Excel source data using AI.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                Find Matches in Document
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <!-- Save template section -->
+                <form action="/loose/save-template" method="post" class="d-flex gap-2 align-items-end">
+                    <input type="hidden" name="deal_id" value="{{ deal_id }}">
+                    <div class="flex-grow-1">
+                        <label class="form-label small fw-semibold mb-1">Save as Template</label>
+                        <input type="text" class="form-control form-control-sm" name="template_name"
+                               placeholder="Template name (e.g., RMBS Standard Language)">
+                    </div>
+                    <!-- Hidden field copies the sentences textarea value on submit -->
+                    <textarea name="sentences" id="save-sentences" class="d-none"></textarea>
+                    <button type="submit" class="btn btn-outline-secondary btn-sm"
+                            onclick="document.getElementById('save-sentences').value = document.getElementById('sentences').value;">
+                        Save Template
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadTemplate(templateId) {
+        try {
+            const resp = await fetch('/loose/load-template/' + templateId);
+            const data = await resp.json();
+            if (data.sentences && data.sentences.length > 0) {
+                document.getElementById('sentences').value = data.sentences.join('\n');
+            }
+        } catch (e) {
+            console.error('Failed to load template:', e);
+        }
+    }
+</script>
+{% endblock %}

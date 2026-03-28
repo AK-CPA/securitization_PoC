@@ -1,5 +1,8 @@
 """Centralized path configuration."""
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file before reading any env vars
 
 # Project root = parent of app/
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,3 +25,6 @@ OUTPUT_DIR = os.path.join(_storage, "outputs")
 # Ensure runtime directories exist
 for d in [DATA_DIR, UPLOAD_DIR, OUTPUT_DIR]:
     os.makedirs(d, exist_ok=True)
+
+# Claude API key (hidden env variable — never exposed in UI)
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")

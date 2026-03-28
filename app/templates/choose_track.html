@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Choose Comparison Type{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="text-center mb-4">
+            <h4>{{ deal_name }}</h4>
+            <p class="text-muted">
+                Uploaded: <strong>{{ word_filename }}</strong>
+                {% if table_count > 0 %}
+                &mdash; {{ table_count }} table(s) found
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Table Tie-Out -->
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100 {{ 'border-secondary opacity-50' if table_count == 0 else '' }}">
+                    <div class="card-body text-center d-flex flex-column">
+                        <div class="mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="text-primary" viewBox="0 0 16 16">
+                                <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/>
+                            </svg>
+                        </div>
+                        <h5 class="card-title">Table Tie-Out</h5>
+                        <p class="card-text text-muted flex-grow-1">
+                            Compare structured tables in the offering document against
+                            source Excel/XML data. Cell-by-cell numeric comparison with
+                            precision control.
+                        </p>
+                        {% if table_count > 0 %}
+                        <a href="/tables/{{ comparison_id }}" class="btn btn-primary btn-lg w-100">
+                            Start Table Tie-Out
+                            <small class="d-block">({{ table_count }} tables found)</small>
+                        </a>
+                        {% else %}
+                        <button class="btn btn-secondary btn-lg w-100" disabled>
+                            No Tables Found
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loose Language Tie-Out -->
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body text-center d-flex flex-column">
+                        <div class="mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="text-primary" viewBox="0 0 16 16">
+                                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                                <path d="M3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 6a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 6zm0 2.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0 2.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z"/>
+                            </svg>
+                        </div>
+                        <h5 class="card-title">Loose Language Tie-Out</h5>
+                        <p class="card-text text-muted flex-grow-1">
+                            Compare numeric assertions in narrative text (sentences)
+                            against source Excel data. Uses AI to interpret comparison
+                            logic and extract values.
+                        </p>
+                        <a href="/loose/sentences/{{ deal_id }}" class="btn btn-primary btn-lg w-100">
+                            Start Loose Language Tie-Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-muted small">
+                You can run both types of tie-out for the same deal.
+                Results are tracked separately in the history.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

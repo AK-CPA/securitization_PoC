@@ -58,21 +58,39 @@ async def upload_word(
 
     # Parse tables
     try:
-        tables = extract_tables(filepath)
+        parsed_tables = extract_tables(filepath)
     except Exception as e:
         return templates.TemplateResponse(request, "index.html", {
             "error": f"Unable to read file. Please ensure it is a valid, unprotected .docx file. Error: {e}",
             "deal_name": deal_name,
         })
 
-    if not tables:
-        return templates.TemplateResponse(request, "index.html", {
-            "error": "No tables found in this document",
-            "deal_name": deal_name,
-        })
-
-    # Store parsed tables as JSON-serializable data
-    comparison.parsed_tables = tables
+    # Store parsed tables (may be empty — that's OK for loose language track)
+    comparison.parsed_tables = parsed_tables or []
     await db.commit()
 
-    return RedirectResponse(url=f"/tables/{comparison.id}", status_code=303)
+    # Go to the track selection page
+    return RedirectResponse(url=f"/choose-track/{deal.id}/{comparison.id}", status_code=303)
+
+
+@router.get("/choose-track/{deal_id}/{comparison_id}")
+async def choose_track(
+    request: Request,
+    deal_id: int,
+    comparison_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    deal = await db.get(Deal, deal_id)
+    comparison = await db.get(Comparison, comparison_id)
+    if not deal or not comparison:
+        return RedirectResponse(url="/", status_code=303)
+
+    table_count = len(comparison.parsed_tables) if comparison.parsed_tables else 0
+
+    return templates.TemplateResponse(request, "choose_track.html", {
+        "deal_id": deal_id,
+        "comparison_id": comparison_id,
+        "deal_name": deal.name,
+        "word_filename": comparison.word_filename,
+        "table_count": table_count,
+    })

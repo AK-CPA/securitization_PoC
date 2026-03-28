@@ -8,10 +8,10 @@ from sqlalchemy import select
 
 from app.config import TEMPLATES_DIR, UPLOAD_DIR, OUTPUT_DIR
 from app.database import get_db
-from app.models import Comparison, ComparisonTable, Deal
+from app.models import Comparison, ComparisonTable, Deal, UploadedFile
 from app.services.word_parser import get_table_label
-from app.services.excel_reader import get_sheet_names, read_sheet_data
-from app.services.range_detector import detect_range
+from app.services.excel_reader import read_sheet_data, read_file_data
+from app.services.range_detector import detect_ranges
 from app.services.comparator import (
     detect_table_precision,
     compare_tables,
@@ -22,6 +22,20 @@ from app.services.output_builder import build_output_workbook
 router = APIRouter()
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
+
+def _get_file_path(deal_id: int, filename: str) -> str:
+    """Build the filesystem path for an uploaded file."""
+    return os.path.join(UPLOAD_DIR, str(deal_id), filename)
+
+
+async def _load_uploaded_file(db: AsyncSession, file_id: int | None) -> UploadedFile | None:
+    """Load an UploadedFile by id."""
+    if not file_id:
+        return None
+    return await db.get(UploadedFile, file_id)
+
+
+# ── Step 5: Range review ─────────────────────────────────────────────────────
 
 @router.get("/range-review/{comparison_id}")
 async def range_review(
@@ -43,8 +57,6 @@ async def range_review(
     )
     comp_tables = result.scalars().all()
 
-    # Load Excel data for each tab
-    excel_path = os.path.join(UPLOAD_DIR, str(comparison.deal_id), comparison.excel_filename)
     tables = comparison.parsed_tables
 
     mappings = []
@@ -52,24 +64,48 @@ async def range_review(
         table_idx = ct.table_index
         word_table = tables[table_idx] if table_idx < len(tables) else []
 
-        current_range = ct.user_range_override or ct.detected_range
+        # Resolve the file path for this table
+        uf = await _load_uploaded_file(db, ct.uploaded_file_id)
+        file_path = _get_file_path(comparison.deal_id, uf.filename) if uf else None
+        file_type = uf.file_type if uf else "xlsx"
+        source_filename = uf.filename if uf else (comparison.excel_filename or "")
+
+        # Determine current range
+        current_range = ct.user_range_override or ct.selected_range or ct.detected_range
+
+        # Get all detected ranges for this sheet
+        all_detected_ranges = ct.detected_ranges or []
+        if not all_detected_ranges and ct.detected_range:
+            all_detected_ranges = [ct.detected_range]
+
         excel_data = []
         error = None
 
-        if current_range:
+        if file_type == "xml":
+            # XML files don't use ranges — read the whole table
             try:
-                excel_data = read_sheet_data(excel_path, ct.excel_tab_name, current_range)
+                if file_path:
+                    excel_data = read_file_data(file_path, ct.excel_tab_name or "")
+                    excel_data = _serialize_data(excel_data)
+            except Exception as e:
+                error = str(e)
+        elif current_range and file_path:
+            try:
+                excel_data = read_sheet_data(file_path, ct.excel_tab_name, current_range)
                 excel_data = _serialize_data(excel_data)
             except Exception as e:
                 error = str(e)
-        else:
+        elif not current_range:
             error = f"No data detected on sheet {ct.excel_tab_name}. Please specify a range manually."
 
         mappings.append({
             "idx": idx,
             "table_index": table_idx,
             "table_label": ct.table_label,
+            "source_filename": source_filename,
             "excel_tab_name": ct.excel_tab_name,
+            "file_type": file_type,
+            "detected_ranges": all_detected_ranges,
             "detected_range": ct.detected_range or "",
             "current_range": current_range or "",
             "word_table": word_table,
@@ -109,14 +145,26 @@ async def update_range(
     ct.user_range_override = range_override if range_override else None
     await db.commit()
 
-    excel_path = os.path.join(UPLOAD_DIR, str(comparison.deal_id), comparison.excel_filename)
-    current_range = range_override or ct.detected_range
+    # Resolve file path
+    uf = await _load_uploaded_file(db, ct.uploaded_file_id)
+    file_path = _get_file_path(comparison.deal_id, uf.filename) if uf else None
+    file_type = uf.file_type if uf else "xlsx"
+    source_filename = uf.filename if uf else ""
+
+    current_range = range_override or ct.selected_range or ct.detected_range
     excel_data = []
     error = None
 
-    if current_range:
+    if file_type == "xml":
         try:
-            excel_data = read_sheet_data(excel_path, ct.excel_tab_name, current_range)
+            if file_path:
+                excel_data = read_file_data(file_path, ct.excel_tab_name or "")
+                excel_data = _serialize_data(excel_data)
+        except Exception as e:
+            error = str(e)
+    elif current_range and file_path:
+        try:
+            excel_data = read_sheet_data(file_path, ct.excel_tab_name, current_range)
             excel_data = _serialize_data(excel_data)
         except ValueError as e:
             error = str(e)
@@ -125,12 +173,16 @@ async def update_range(
 
     tables = comparison.parsed_tables
     word_table = tables[ct.table_index] if ct.table_index < len(tables) else []
+    all_detected_ranges = ct.detected_ranges or []
 
     mapping = {
         "idx": 0,
         "table_index": ct.table_index,
         "table_label": ct.table_label,
+        "source_filename": source_filename,
         "excel_tab_name": ct.excel_tab_name,
+        "file_type": file_type,
+        "detected_ranges": all_detected_ranges,
         "detected_range": ct.detected_range or "",
         "current_range": current_range or "",
         "word_table": word_table,
@@ -149,6 +201,25 @@ async def update_range(
     })
 
 
+@router.post("/select-range/{comparison_id}/{ct_id}")
+async def select_detected_range(
+    request: Request,
+    comparison_id: int,
+    ct_id: int,
+    selected_range: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+):
+    """HTMX endpoint to select one of the detected ranges."""
+    ct = await db.get(ComparisonTable, ct_id)
+    if ct:
+        ct.selected_range = selected_range.strip().upper() if selected_range.strip() else None
+        ct.user_range_override = None  # Clear manual override when selecting a detected range
+        await db.commit()
+
+    # Redirect back to refresh — or use HTMX swap
+    return RedirectResponse(url=f"/range-review/{comparison_id}", status_code=303)
+
+
 @router.post("/confirm-ranges/{comparison_id}")
 async def confirm_ranges(
     request: Request,
@@ -157,6 +228,8 @@ async def confirm_ranges(
 ):
     return RedirectResponse(url=f"/precision/{comparison_id}", status_code=303)
 
+
+# ── Step 6: Precision review ─────────────────────────────────────────────────
 
 @router.get("/precision/{comparison_id}")
 async def precision_review(
@@ -249,7 +322,6 @@ async def submit_precision(
 
     # Now run the comparison
     deal = await db.get(Deal, comparison.deal_id)
-    excel_path = os.path.join(UPLOAD_DIR, str(comparison.deal_id), comparison.excel_filename)
     tables = comparison.parsed_tables
 
     output_comparisons = []
@@ -257,10 +329,21 @@ async def submit_precision(
 
     for ct in comp_tables:
         word_table = tables[ct.table_index] if ct.table_index < len(tables) else []
-        current_range = ct.user_range_override or ct.detected_range
+        current_range = ct.user_range_override or ct.selected_range or ct.detected_range
+
+        # Resolve file path for this table
+        uf = await _load_uploaded_file(db, ct.uploaded_file_id)
+        file_path = _get_file_path(comparison.deal_id, uf.filename) if uf else None
+        file_type = uf.file_type if uf else "xlsx"
+        source_filename = uf.filename if uf else (comparison.excel_filename or "")
 
         try:
-            excel_data = read_sheet_data(excel_path, ct.excel_tab_name, current_range)
+            if file_type == "xml" and file_path:
+                excel_data = read_file_data(file_path, ct.excel_tab_name or "")
+            elif file_path:
+                excel_data = read_sheet_data(file_path, ct.excel_tab_name, current_range)
+            else:
+                excel_data = []
         except Exception:
             excel_data = []
 
@@ -290,7 +373,7 @@ async def submit_precision(
         output_comparisons.append({
             "table_label": ct.table_label,
             "word_filename": comparison.word_filename,
-            "excel_filename": comparison.excel_filename,
+            "excel_filename": source_filename,
             "excel_tab_name": ct.excel_tab_name,
             "excel_range": current_range or "",
             "word_table": word_table,
@@ -314,6 +397,8 @@ async def submit_precision(
 
     return RedirectResponse(url=f"/results/{comparison_id}", status_code=303)
 
+
+# ── Step 7: Results ──────────────────────────────────────────────────────────
 
 @router.get("/results/{comparison_id}")
 async def results(
@@ -342,8 +427,14 @@ async def results(
     tables = comparison.parsed_tables
     for ct in comp_tables:
         word_table = tables[ct.table_index] if ct.table_index < len(tables) else []
+
+        # Resolve source filename
+        uf = await _load_uploaded_file(db, ct.uploaded_file_id)
+        source_filename = uf.filename if uf else (comparison.excel_filename or "")
+
         table_results.append({
             "table_label": ct.table_label,
+            "source_filename": source_filename,
             "excel_tab_name": ct.excel_tab_name,
             "match_count": ct.match_count or 0,
             "mismatch_count": ct.mismatch_count or 0,

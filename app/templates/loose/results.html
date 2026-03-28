@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Loose Language — Results{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Summary Banner -->
+        <div class="alert {{ 'alert-success' if overall_status == 'pass' else 'alert-danger' }} d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-1">
+                    Loose Language Tie-Out — {{ deal_name }}
+                    {% if overall_status == 'pass' %}
+                        — All Checks Passed
+                    {% else %}
+                        — Mismatches Found
+                    {% endif %}
+                </h4>
+                <span>
+                    {{ total_matches }} matched | {{ total_mismatches }} mismatched | {{ total_comparisons }} total values compared
+                </span>
+            </div>
+            <div class="d-flex gap-2">
+                {% if has_output %}
+                <a href="/loose/download/{{ loose_id }}" class="btn btn-dark btn-lg">
+                    Download Excel
+                </a>
+                {% endif %}
+                <a href="/" class="btn btn-outline-secondary">New Comparison</a>
+            </div>
+        </div>
+
+        <!-- Per-sentence results -->
+        {% for item in items %}
+        {% if item.status not in ('skipped', 'no_match') %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 data-bs-toggle="collapse" data-bs-target="#item-{{ item.id }}"
+                 style="cursor: pointer;">
+                <h5 class="mb-0">
+                    <span class="badge {{ 'bg-success' if item.status == 'pass' else 'bg-danger' if item.status == 'fail' else 'bg-warning' }} me-2">
+                        {{ item.status|upper if item.status else 'PENDING' }}
+                    </span>
+                    Sentence {{ loop.index }}
+                </h5>
+                {% if item.comparison_result %}
+                <span class="text-muted small">
+                    {{ item.comparison_result.get('summary', '') }}
+                </span>
+                {% endif %}
+            </div>
+            <div class="collapse {{ 'show' if item.status in ('fail', 'error') else '' }}" id="item-{{ item.id }}">
+                <div class="card-body">
+                    {% if item.error_message %}
+                    <div class="alert alert-danger small">{{ item.error_message }}</div>
+                    {% endif %}
+
+                    <!-- Matched sentence -->
+                    <div class="mb-3">
+                        <h6 class="text-muted small">Document Sentence</h6>
+                        <div class="border rounded p-2 bg-light small">
+                            {{ item.matched_sentence }}
+                        </div>
+                        {% if item.similarity_score %}
+                        <small class="text-muted">Similarity: {{ (item.similarity_score * 100)|round(1) }}%</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Comparison table -->
+                    {% if item.comparison_result and item.comparison_result.get('comparisons') %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Document Value</th>
+                                    <th>Excel Value</th>
+                                    <th>Difference</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comp in item.comparison_result['comparisons'] %}
+                                <tr class="{{ 'table-danger' if comp.status == 'mismatch' else 'table-warning' if comp.status == 'unmatched' else '' }}">
+                                    <td>{{ comp.label }}</td>
+                                    <td>{{ comp.doc_value if comp.doc_value is not none else '—' }}</td>
+                                    <td>{{ comp.excel_value if comp.excel_value is not none else '—' }}</td>
+                                    <td>
+                                        {% if comp.difference is not none %}
+                                            {{ comp.difference }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if comp.status == 'match' %}
+                                        <span class="badge bg-success">MATCH</span>
+                                        {% elif comp.status == 'mismatch' %}
+                                        <span class="badge bg-danger">MISMATCH</span>
+                                        {% elif comp.status == 'unmatched' %}
+                                        <span class="badge bg-warning">UNMATCHED</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% elif item.status == 'no_match' %}
+        <div class="card mb-3 shadow-sm border-warning">
+            <div class="card-header">
+                <span class="badge bg-secondary me-2">SKIPPED</span>
+                <span class="text-muted small">No match found for: "{{ item.candidate_sentence[:80] }}..."</span>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <div class="d-flex justify-content-center mt-4 gap-3">
+            {% if has_output %}
+            <a href="/loose/download/{{ loose_id }}" class="btn btn-primary btn-lg">Download Output Excel</a>
+            {% endif %}
+            <a href="/loose/sentences/{{ deal_id }}" class="btn btn-outline-secondary btn-lg">New Loose Tie-Out</a>
+            <a href="/" class="btn btn-outline-secondary btn-lg">Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

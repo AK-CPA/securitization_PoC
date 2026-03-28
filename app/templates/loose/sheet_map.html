@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Loose Language — Map to Sheets{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <h4 class="mb-3">Map Sentences to Excel Sheets — {{ deal_name }}</h4>
+        <p class="text-muted">
+            For each matched sentence, select the Excel sheet that contains the relevant source data.
+            Claude AI will then extract and compare the numeric values.
+        </p>
+
+        <form action="/loose/sheet-map/{{ loose_id }}" method="post">
+            {% for item in items %}
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header">
+                    <h6 class="mb-0">Sentence {{ loop.index }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="border rounded p-2 bg-light small mb-3">
+                        {{ item.matched_sentence }}
+                    </div>
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Source Sheet</label>
+                            <select class="form-select" name="sheet_{{ item.id }}" required>
+                                {% for sheet in sheet_names %}
+                                <option value="{{ sheet }}">{{ sheet }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <small class="text-muted">
+                                Claude will read the entire sheet and determine which data
+                                corresponds to the assertion in this sentence.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-between mt-3">
+                <a href="/loose/upload-excel/{{ loose_id }}" class="btn btn-outline-secondary">
+                    Back
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Run AI Comparison
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

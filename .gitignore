@@ -9,6 +9,7 @@ env/
 data/app.db
 uploads/
 outputs/
+.env
 .DS_Store
 *.swp
 *.swo

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Map Tables to Source Files{% endblock %}
+
+{% block step_indicator %}
+<div class="step-indicator">
+    <div class="container">
+        <div class="steps">
+            <span class="step completed">1. Upload Document</span>
+            <span class="step completed">2. Select Tables</span>
+            <span class="step completed">3. Upload Source Files</span>
+            <span class="step active">4. Map Tables</span>
+            <span class="step">5. Range Detection</span>
+            <span class="step">6. Precision Review</span>
+            <span class="step">7. Results</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">Map Tables to Source Files — {{ deal_name }}</h4>
+<p class="text-muted">
+    For each selected Word table, choose which source file and sheet/table it should be compared against.
+</p>
+
+<form action="/map-tables/{{ comparison_id }}" method="post">
+    {% for m in mapping_data %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ m.table_label }}</h5>
+            <span class="text-muted">{{ m.word_rows }} rows &times; {{ m.word_cols }} cols</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Word table preview (collapsed) -->
+                <div class="col-md-5">
+                    <h6>Offering Document Table</h6>
+                    <div class="table-preview-container" style="max-height: 200px; overflow-y: auto;">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0">
+                                <tbody>
+                                    {% for row in m.word_table[:8] %}
+                                    <tr>
+                                        {% for cell in row %}
+                                        <td class="small">{{ cell }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                    {% if m.word_table|length > 8 %}
+                                    <tr><td colspan="100" class="text-center text-muted">... {{ m.word_table|length - 8 }} more rows</td></tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mapping controls -->
+                <div class="col-md-7">
+                    <h6>Source Mapping</h6>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Source File</label>
+                        <select class="form-select" name="file_{{ m.table_index }}"
+                                id="file-select-{{ m.table_index }}"
+                                onchange="loadSheets({{ m.table_index }}, this.value)"
+                                required>
+                            <option value="">-- Select file --</option>
+                            {% for uf in uploaded_files %}
+                            <option value="{{ uf.id }}"
+                                    data-type="{{ uf.file_type }}"
+                                    {% if m.current_file_id == uf.id %}selected{% endif %}>
+                                {{ uf.filename }} ({{ uf.file_type }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Sheet / Table</label>
+                        <select class="form-select" name="sheet_{{ m.table_index }}"
+                                id="sheet-select-{{ m.table_index }}" required>
+                            <option value="">-- Select a file first --</option>
+                            {% if m.current_file_id and m.current_file_id in file_sheets %}
+                                {% for sheet in file_sheets[m.current_file_id] %}
+                                <option value="{{ sheet }}"
+                                        {% if m.current_sheet == sheet %}selected{% endif %}>
+                                    {{ sheet }}
+                                </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="d-flex justify-content-between mt-3">
+        <a href="/upload-files/{{ comparison_id }}" class="btn btn-outline-secondary">
+            Back to Upload
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg">
+            Confirm Mappings &amp; Detect Ranges
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load sheets dynamically when a file is selected
+    async function loadSheets(tableIndex, fileId) {
+        const sheetSelect = document.getElementById('sheet-select-' + tableIndex);
+        sheetSelect.innerHTML = '<option value="">Loading...</option>';
+
+        if (!fileId) {
+            sheetSelect.innerHTML = '<option value="">-- Select a file first --</option>';
+            return;
+        }
+
+        try {
+            const resp = await fetch('/api/file-sheets/{{ comparison_id }}/' + fileId);
+            const data = await resp.json();
+
+            sheetSelect.innerHTML = '';
+            if (data.sheets.length === 0) {
+                sheetSelect.innerHTML = '<option value="">No sheets found</option>';
+                return;
+            }
+
+            for (const sheet of data.sheets) {
+                const opt = document.createElement('option');
+                opt.value = sheet;
+                opt.textContent = sheet;
+                sheetSelect.appendChild(opt);
+            }
+        } catch (e) {
+            sheetSelect.innerHTML = '<option value="">Error loading sheets</option>';
+        }
+    }
+
+    // Auto-load sheets for any pre-selected files on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        {% for m in mapping_data %}
+        {% if m.current_file_id %}
+        // Already has sheets rendered server-side, no need to reload
+        {% endif %}
+        {% endfor %}
+    });
+</script>
+{% endblock %}

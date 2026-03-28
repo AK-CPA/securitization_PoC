@@ -18,12 +18,14 @@
             <small class="text-muted">Created {{ item.deal.created_at.strftime('%Y-%m-%d %H:%M') if item.deal.created_at else 'N/A' }}</small>
         </div>
         <div class="card-body p-0">
+            {% if item.comparisons %}
+            <h6 class="px-3 pt-3 mb-2">Table Tie-Outs</h6>
             <table class="table table-sm mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>ID</th>
                         <th>Word File</th>
-                        <th>Excel File</th>
+                        <th>Source Files</th>
                         <th>Status</th>
                         <th>Date</th>
                         <th>Actions</th>
@@ -59,6 +61,58 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% endif %}
+
+            {% if item.loose_comparisons %}
+            <h6 class="px-3 pt-3 mb-2">Loose Language Tie-Outs</h6>
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Word File</th>
+                        <th>Excel File</th>
+                        <th>Sentences</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lc in item.loose_comparisons %}
+                    <tr>
+                        <td>{{ lc.id }}</td>
+                        <td>{{ lc.word_filename or '—' }}</td>
+                        <td>{{ lc.excel_filename or '—' }}</td>
+                        <td>{{ lc.candidate_sentences|length if lc.candidate_sentences else 0 }}</td>
+                        <td>
+                            {% if lc.status == 'pass' %}
+                            <span class="badge bg-success">PASS</span>
+                            {% elif lc.status == 'fail' %}
+                            <span class="badge bg-danger">FAIL</span>
+                            {% else %}
+                            <span class="badge bg-secondary">PENDING</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ lc.created_at.strftime('%Y-%m-%d %H:%M') if lc.created_at else 'N/A' }}</td>
+                        <td>
+                            {% if lc.status %}
+                            <a href="/loose/results/{{ lc.id }}" class="btn btn-sm btn-outline-primary">View Results</a>
+                            {% if lc.output_filename %}
+                            <a href="/loose/download/{{ lc.id }}" class="btn btn-sm btn-outline-dark">Download</a>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">In progress</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+            {% if not item.comparisons and not item.loose_comparisons %}
+            <div class="p-3 text-muted">No comparisons for this deal.</div>
+            {% endif %}
         </div>
     </div>
     {% endfor %}

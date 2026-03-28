@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Loose Language — Upload Excel{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <h4 class="mb-3">Upload Source Excel — {{ deal_name }}</h4>
+
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Source Data</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Upload the Excel workbook containing the source data that the document sentences
+                    should be compared against. Each sentence will be mapped to a specific sheet
+                    in the next step.
+                </p>
+
+                {% if excel_filename %}
+                <div class="alert alert-info">
+                    Already uploaded: <strong>{{ excel_filename }}</strong>
+                    <br>
+                    <a href="/loose/sheet-map/{{ loose_id }}" class="btn btn-primary btn-sm mt-2">
+                        Continue to Sheet Mapping
+                    </a>
+                </div>
+                <hr>
+                <p class="text-muted small">Or replace with a different file:</p>
+                {% endif %}
+
+                <form action="/loose/upload-excel/{{ loose_id }}" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="excel_file" class="form-label fw-semibold">Excel Workbook</label>
+                        <input type="file" class="form-control" id="excel_file" name="excel_file"
+                               accept=".xlsx" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        Upload &amp; Continue
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

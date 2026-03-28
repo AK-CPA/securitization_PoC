@@ -8,10 +8,11 @@
         <div class="steps">
             <span class="step completed">1. Upload Document</span>
             <span class="step completed">2. Select Tables</span>
-            <span class="step completed">3. Upload Excel</span>
-            <span class="step completed">4. Range Detection</span>
-            <span class="step completed">5. Precision Review</span>
-            <span class="step active">6. Results</span>
+            <span class="step completed">3. Upload Source Files</span>
+            <span class="step completed">4. Map Tables</span>
+            <span class="step completed">5. Range Detection</span>
+            <span class="step completed">6. Precision Review</span>
+            <span class="step active">7. Results</span>
         </div>
     </div>
 </div>
@@ -53,7 +54,7 @@
             {{ tr.table_label }}
         </h5>
         <span class="text-muted">
-            {{ tr.excel_tab_name }} &mdash;
+            {{ tr.source_filename }} / {{ tr.excel_tab_name }} &mdash;
             {{ tr.match_count }} match, {{ tr.mismatch_count }} mismatch, {{ tr.total_cells }} total
         </span>
     </div>

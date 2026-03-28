@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import STATIC_DIR
 from app.database import init_db
-from app.routers import upload, tables, compare, history
+from app.routers import upload, tables, compare, history, loose
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,3 +41,4 @@ app.include_router(upload.router)
 app.include_router(tables.router)
 app.include_router(compare.router)
 app.include_router(history.router)
+app.include_router(loose.router)

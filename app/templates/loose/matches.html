@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Loose Language — Review Matches{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">Review Matched Sentences — {{ deal_name }}</h4>
+            <span class="badge bg-primary fs-6">
+                {{ matched_count }} of {{ total_count }} matched
+            </span>
+        </div>
+
+        <p class="text-muted">
+            Review the sentences found in the document. Check the ones you want to include in the comparison.
+            You can also manually edit the matched text if the auto-match wasn't quite right.
+        </p>
+
+        <form action="/loose/matches/{{ loose_id }}" method="post">
+            {% for item in items %}
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               name="include_{{ item.id }}" value="1"
+                               id="include-{{ item.id }}"
+                               {% if item.matched_sentence and item.status != 'no_match' %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="include-{{ item.id }}">
+                            Sentence {{ loop.index }}
+                        </label>
+                    </div>
+                    <div>
+                        {% if item.matched_sentence %}
+                        <span class="badge bg-success">
+                            {{ (item.similarity_score * 100)|round(1) }}% match
+                        </span>
+                        {% else %}
+                        <span class="badge bg-warning">No match found</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted small">Candidate (Reference)</h6>
+                            <div class="border rounded p-2 bg-light small">
+                                {{ item.candidate_sentence }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted small">Matched in Document</h6>
+                            {% if item.matched_sentence %}
+                            <textarea class="form-control form-control-sm"
+                                      name="override_{{ item.id }}"
+                                      rows="3">{{ item.matched_sentence }}</textarea>
+                            <div class="form-text">Edit if the match needs adjustment.</div>
+                            {% else %}
+                            <div class="border rounded p-2 bg-light text-muted small">
+                                No matching sentence found in the document.
+                                <br>
+                                <em>You can paste the correct sentence below to include it:</em>
+                            </div>
+                            <textarea class="form-control form-control-sm mt-1"
+                                      name="override_{{ item.id }}"
+                                      rows="2" placeholder="Paste sentence from document..."></textarea>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-between mt-3">
+                <a href="/loose/sentences/{{ deal_id }}" class="btn btn-outline-secondary">
+                    Back to Sentences
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Confirm &amp; Upload Excel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

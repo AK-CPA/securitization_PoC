@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.config import TEMPLATES_DIR
 from app.database import get_db
-from app.models import Deal, Comparison, ComparisonTable
+from app.models import Deal, Comparison, ComparisonTable, LooseComparison
 
 router = APIRouter()
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
@@ -32,9 +32,18 @@ async def history_list(
             .order_by(Comparison.created_at.desc())
         )
         comparisons = comp_result.scalars().all()
+
+        loose_result = await db.execute(
+            select(LooseComparison)
+            .where(LooseComparison.deal_id == deal.id)
+            .order_by(LooseComparison.created_at.desc())
+        )
+        loose_comparisons = loose_result.scalars().all()
+
         deals_data.append({
             "deal": deal,
             "comparisons": comparisons,
+            "loose_comparisons": loose_comparisons,
         })
 
     return templates.TemplateResponse(request, "history.html", {
